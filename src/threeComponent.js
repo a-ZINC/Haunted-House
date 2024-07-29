@@ -90,7 +90,7 @@ const window_occlusionTexture = textureLoader.load(window_occlusion);
 const grass_baseTexture = textureLoader.load(grass_base);
 
 grass_baseTexture.wrapS = grass_baseTexture.wrapT = THREE.RepeatWrapping;
-grass_baseTexture.repeat.set(10, 10);
+grass_baseTexture.repeat.set(30, 30);
 
 const roof_baseTexture = textureLoader.load(roof_base);
 const roof_roughnessTexture = textureLoader.load(roof_roughness);
@@ -116,7 +116,6 @@ const planeGeometry = new THREE.PlaneGeometry(20, 20);
 const planeMaterial = new THREE.MeshStandardMaterial({color: 0x00bb00});
 planeMaterial.map = grass_baseTexture;
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.receiveShadow = true;
 plane.geometry.setAttribute('uv2', new THREE.BufferAttribute(plane.geometry.attributes.uv.array, 2));
 plane.rotation.x = -Math.PI / 2;
 plane.position.set(0, -1, 0);
@@ -202,8 +201,6 @@ const bushes4 = bushes1.clone();
 bushes4.position.set(-1.6, -0.9, 2.001 + 1/4);
 bushes4.scale.set(0.25, 0.25, 0.25);
 
-bushes1.castShadow = bushes2.castShadow = bushes3.castShadow = bushes4.castShadow = true;
-
 house.add(bushes1, bushes2, bushes3, bushes4);
 
 
@@ -213,7 +210,7 @@ graveMaterial.map = grave_baseTexture;
 
 for(let i = 0; i < 70; i++) {
     const grave = new THREE.Mesh(graveGeometry, graveMaterial);
-    grave.castShadow = true;
+    grave.castShadow = grave.receiveShadow = true;
     const radius = Math.random() * 6 + 3;
     grave.position.x = Math.sin(i * Math.PI * 2 / 50) * radius;
     grave.position.y = -0.6 - Math.random() * 1/10;
@@ -223,13 +220,14 @@ for(let i = 0; i < 70; i++) {
     scene.add(grave);
 }
 
+
 const fog = new THREE.Fog('#262837', 3, 10);
 scene.fog = fog;
 
 
 const perspectiveCamera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100);
 // const perspectiveCamera = new THREE.OrthographicCamera(-1*(sizes.width/sizes.height), 1*(sizes.width/sizes.height), 1, -1, 0.1, 100);
-perspectiveCamera.position.set(4, 2, 5);
+perspectiveCamera.position.set(4, 2, 6);
 scene.add(perspectiveCamera);
 
 
@@ -238,10 +236,24 @@ controls.enableDamping = true;
 
 const ambientLight = new THREE.AmbientLight(0xb9d5ff, 0.5);
 scene.add(ambientLight);
-const moonLight = new THREE.DirectionalLight(0xb9d5ff, 0.12);
-moonLight.castShadow = true;
+
+const moonLight = new THREE.DirectionalLight(0xb9d5ff, 0.3);
+moonLight.position.set(2, 4, -0.5);
+moonLight.shadow.mapSize.width = 1024;
+moonLight.shadow.mapSize.height = 1024;
+moonLight.shadow.camera.near = 0.1;
+moonLight.shadow.camera.far = 10;
+moonLight.shadow.camera.left = -10;
+moonLight.shadow.camera.right = 10;
+moonLight.shadow.camera.top = 10;
+moonLight.shadow.camera.bottom = -10;
+// const helper = new THREE.DirectionalLightHelper(moonLight, 1);
+// const cameraHelper = new THREE.CameraHelper(moonLight.shadow.camera);
+// scene.add(helper, cameraHelper);
 scene.add(moonLight);
+
 const doorLight = new THREE.PointLight(0xff7d46, 1, 7);
+doorLight.castShadow = true;
 doorLight.position.set(0, 1.2, 2.5);
 house.add(doorLight);
 // const doorLightHelper = new THREE.PointLightHelper(doorLight, 1);
@@ -252,14 +264,31 @@ house.add(doorLight);
 // const cameraHelper = new THREE.CameraHelper(doorLight.shadow.camera);
 // house.add(cameraHelper);
 
+const ghost1 = new THREE.PointLight(0xff0000, 1);
+const ghost2 = new THREE.PointLight(0x00ff00, 1);
+const ghost3 = new THREE.PointLight(0x0000ff, 1);
+scene.add(ghost1, ghost2, ghost3);
+
+
 const renderer = new THREE.WebGLRenderer({canvas:canvas});
 renderer.setClearColor('#262837');
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.render(scene, perspectiveCamera);
 
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+moonLight.castShadow = true;
+doorLight.castShadow = true;
+
+ghost1.castShadow = ghost2.castShadow = ghost3.castShadow = true;
+
+bushes1.castShadow = bushes2.castShadow = bushes3.castShadow = bushes4.castShadow = true;
+plane.receiveShadow = true;
+
+wall.castShadow = true;
 
 const animation = () => {
     const elapsedTime = clock.getElapsedTime();
@@ -268,6 +297,16 @@ const animation = () => {
     // perspectiveCamera.position.z = Math.cos(cursor.x * Math.PI * 2) * 3;
     // perspectiveCamera.position.y = Math.cos(cursor.y * Math.PI) * 3;
     // perspectiveCamera.lookAt(cube.position);
+    ghost1.position.x = Math.sin(elapsedTime) * 3.5;
+    ghost1.position.z = Math.cos(elapsedTime) * 3.5;
+    ghost1.position.y = Math.abs(Math.cos(elapsedTime * 5)) * 0.5;
+
+    ghost2.position.x = Math.sin(elapsedTime) * -4.5;
+    ghost2.position.z = Math.cos(elapsedTime) * 4.5;
+
+    ghost3.position.x = Math.sin(elapsedTime) * 5 + Math.cos(elapsedTime) * 2;
+    ghost3.position.z = Math.cos(elapsedTime) * 5 + Math.sin(elapsedTime) * 2;
+
     controls.update();
     renderer.render(scene, perspectiveCamera);
 
